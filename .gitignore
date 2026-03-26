@@ -1,0 +1,24 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build Outputs
+dist-app/
+dist/
+*.AppImage
+*.deb
+*.rpm
+
+# Private Config
+.env
+.env.local
+
+# App-specific Caches
+.thumbnails/
+backend.log
+frontend.log
+
+# OS specifics
+.DS_Store
+Thumbs.db

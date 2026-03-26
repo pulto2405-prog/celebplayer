@@ -1,0 +1,44 @@
+{
+  "name": "celebplayer",
+  "version": "1.0.0",
+  "description": "A private, Plex-style media player for local video collections with automatic thumbnail generation.",
+  "author": "Pulto <pulto2405@gmail.com>",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:linux": "electron-builder --linux --x64",
+    "build:arm64": "electron-builder --linux --arm64",
+    "build:win": "electron-builder --win"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.celebplayer.app",
+    "productName": "Celebplayer",
+    "directories": {
+      "output": "dist-app"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "node_modules/**/*",
+      "backend/dist/bundle.js",
+      "frontend/dist/**/*"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Video"
+    },
+    "asar": true,
+    "asarUnpack": [
+      "backend/dist/bundle.js",
+      "frontend/dist/**/*"
+    ]
+  }
+}
