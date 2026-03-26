@@ -33,6 +33,7 @@
       "target": [
         "AppImage"
       ],
+      "icon": "build/icon.png",
       "category": "Video"
     },
     "asar": true,
