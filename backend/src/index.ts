@@ -154,14 +154,17 @@ app.get('/api/generate-thumbnail/:id', async (req: Request, res: Response) => {
         const absolutePath = path.resolve(filePath);
         
         // Direkter spawn-Aufruf ist am sichersten für Sonderzeichen wie '%'
+        // WICHTIG: '%' muss für FFmpeg verdoppelt werden (%%), damit es nicht als Platzhalter interpretiert wird
+        const escapedPath = absolutePath.replace(/%/g, '%%');
+        
         const { spawn } = require('child_process');
         const ffmpegProcess = spawn('ffmpeg', [
-            '-ss', '10',            // Schnelles Seeking vor dem Input
-            '-i', absolutePath,    // Der Pfad wird als exaktes Argument übergeben
-            '-frames:v', '1',      // Nur ein Bild extrahieren
-            '-s', '320x180',       // Größe festlegen
-            '-y',                  // Bestehende Datei überschreiben
-            thumbnailPath          // Zielpfad
+            '-ss', '10',
+            '-i', escapedPath,
+            '-frames:v', '1',
+            '-s', '320x180',
+            '-y',
+            thumbnailPath
         ]);
 
         ffmpegProcess.on('close', (code: number) => {
