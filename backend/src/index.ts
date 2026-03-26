@@ -10,10 +10,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Sicherer Fallback: Wenn process.env.MEDIA_DIR undefined ist, nutzen wir den Default
+// Standard-Medienverzeichnis (Home-Videos oder aktuelles Verzeichnis)
+const defaultDir = path.join(require('os').homedir(), 'Videos');
 let currentMediaDir = (process.env.MEDIA_DIR && process.env.MEDIA_DIR !== 'undefined') 
     ? process.env.MEDIA_DIR 
-    : '/mnt/Seagate8TB/celeb/nudeceleb';
+    : (fs.existsSync(defaultDir) ? defaultDir : process.cwd());
 
 app.use(cors());
 app.use(express.json());
