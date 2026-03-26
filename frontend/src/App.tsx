@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Play, X, Search, Clapperboard } from 'lucide-react';
+import { Play, X, Search, Clapperboard, Folder } from 'lucide-react';
 import './App.css';
 
 interface Video {
@@ -29,10 +29,12 @@ function App() {
 
   useEffect(() => {
     const initPlayer = async () => {
-      try {
-        await axios.post('/api/set-media-dir', { dirPath: folderPath });
-      } catch (e) {
-        console.error('Konnte initialen Pfad nicht setzen:', e);
+      if (folderPath) {
+        try {
+          await axios.post('/api/set-media-dir', { dirPath: folderPath });
+        } catch (e) {
+          console.error('Konnte initialen Pfad nicht setzen:', e);
+        }
       }
       fetchVideos();
     };
@@ -46,40 +48,12 @@ function App() {
     }
   }, [selectedVideo]);
 
-  const toSafeBase64 = (str: string) => {
-    try {
-      const bytes = new TextEncoder().encode(str);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-    } catch (e) {
-      return btoa(unescape(encodeURIComponent(str)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-    }
-  };
-
   const fetchVideos = async () => {
     setLoading(true);
     try {
       const response = await axios.get('/api/videos');
-      // Sicherheits-Check: Ist data ein Array?
       if (Array.isArray(response.data)) {
-        const processedVideos = response.data.map((v: any) => {
-          const safeId = toSafeBase64(v.name);
-          return {
-            ...v,
-            id: safeId,
-            thumbnail: `/thumbnails/${safeId}.png`
-          };
-        });
-        setVideos(processedVideos);
+        setVideos(response.data);
       } else {
         console.error('Ungültiges Datenformat vom Server:', response.data);
         setVideos([]);
@@ -109,7 +83,12 @@ function App() {
 
   const handleThumbnailError = (e: React.SyntheticEvent<HTMLImageElement, Event>, id: string) => {
     const target = e.target as HTMLImageElement;
-    // Verhindere Endlosschleife: Wenn bereits ein Versuch unternommen wurde, brich ab.
+    // Wenn das Poster (api/poster) fehlt, wechsle zum generierten Thumbnail
+    if (target.src.includes('/api/poster/')) {
+       target.src = `/thumbnails/${id}.png`;
+       return;
+    }
+    // Wenn auch das Thumbnail fehlt, versuche es einmalig neu zu generieren
     if (target.getAttribute('data-retry')) return;
     target.setAttribute('data-retry', 'true');
     target.src = `/api/generate-thumbnail/${id}`;
@@ -156,7 +135,7 @@ function App() {
             />
           </div>
         </div>
-        <div className="user-profile" style={{ background: '#333', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>V</div>
+        <div className="user-profile" style={{ background: '#333', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>P</div>
       </header>
 
       {loading ? (
@@ -168,7 +147,7 @@ function App() {
         <>
           <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Clapperboard size={20} color="#e5a00d" />
-            <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Alle Videos ({filteredVideos.length})</h2>
+            <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Plex Library ({filteredVideos.length})</h2>
           </div>
           
           <div className="video-grid">
@@ -188,7 +167,12 @@ function App() {
                 </div>
                 <div className="video-info">
                   <p className="video-title" title={video.name}>{video.name}</p>
-                  <p className="video-meta">MP4 • 720p</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
+                    <Folder size={12} color="#888" />
+                    <p className="video-meta" style={{ margin: 0 }}>
+                       {video.name.length > 25 ? video.name.substring(0, 25) + '...' : video.name}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

@@ -16,6 +16,55 @@ let currentMediaDir = (process.env.MEDIA_DIR && process.env.MEDIA_DIR !== 'undef
     ? process.env.MEDIA_DIR 
     : (fs.existsSync(defaultDir) ? defaultDir : process.cwd());
 
+// Hilfsfunktion für den rekursiven Dateiscan
+async function getVideosRecursive(dir: string, baseDir: string): Promise<any[]> {
+    let results: any[] = [];
+    if (!fs.existsSync(dir)) return results;
+    
+    const list = await fs.readdir(dir);
+
+    for (const file of list) {
+        const filePath = path.join(dir, file);
+        const stat = await fs.stat(filePath);
+
+        if (stat && stat.isDirectory()) {
+            if (file !== '.thumbnails' && !file.startsWith('.')) {
+                const res = await getVideosRecursive(filePath, baseDir);
+                results = results.concat(res);
+            }
+        } else if (['.mp4', '.mkv', '.avi', '.mov'].includes(path.extname(file).toLowerCase())) {
+            const relativePath = path.relative(baseDir, filePath);
+            const toSafeBase64 = (str: string) => {
+                return Buffer.from(str, 'utf8').toString('base64')
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=+$/, '');
+            };
+            const id = toSafeBase64(relativePath);
+            
+            // Suche nach einem Poster im gleichen Ordner
+            const parentDir = path.dirname(filePath);
+            const posterFiles = ['poster.jpg', 'poster.png', 'folder.jpg', 'folder.png', 'cover.jpg', 'cover.png'];
+            let posterPath = null;
+            
+            for (const p of posterFiles) {
+                const pPath = path.join(parentDir, p);
+                if (fs.existsSync(pPath)) {
+                    posterPath = `/api/poster/${id}`;
+                    break;
+                }
+            }
+
+            results.push({
+                name: file,
+                id: id,
+                thumbnail: posterPath || `/thumbnails/${id}.png`
+            });
+        }
+    }
+    return results;
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -33,7 +82,27 @@ app.use('/thumbnails', (req, res, next) => {
 
 // --- API ROUTEN ---
 
-// NEU: Setze das Medienverzeichnis
+// Route für lokale Poster-Bilder (poster.jpg etc.)
+app.get('/api/poster/:id', async (req: Request, res: Response) => {
+    try {
+        const relativePath = fromSafeBase64(req.params.id);
+        const filePath = path.join(currentMediaDir, relativePath);
+        const parentDir = path.dirname(filePath);
+        
+        const posterFiles = ['poster.jpg', 'poster.png', 'folder.jpg', 'folder.png', 'cover.jpg', 'cover.png'];
+        for (const p of posterFiles) {
+            const pPath = path.join(parentDir, p);
+            if (fs.existsSync(pPath)) {
+                return res.sendFile(pPath);
+            }
+        }
+        res.status(404).send('Kein Poster gefunden');
+    } catch (e) {
+        res.status(500).send('Fehler beim Laden des Posters');
+    }
+});
+
+// Setze das Medienverzeichnis
 app.post('/api/set-media-dir', async (req: Request, res: Response) => {
     const { dirPath } = req.body;
     console.log(`Anfrage /api/set-media-dir mit Pfad: ${dirPath}`);
@@ -56,7 +125,7 @@ app.post('/api/set-media-dir', async (req: Request, res: Response) => {
     res.json({ message: 'Medienverzeichnis aktualisiert', currentMediaDir });
 });
 
-// 1. Liste alle Videos
+// 1. Liste alle Videos (jetzt REKURSIV)
 app.get('/api/videos', async (req: Request, res: Response) => {
     console.log(`Anfrage /api/videos für Verzeichnis: ${currentMediaDir}`);
     try {
@@ -64,25 +133,9 @@ app.get('/api/videos', async (req: Request, res: Response) => {
             console.error(`Verzeichnis existiert nicht: ${currentMediaDir}`);
             return res.status(404).json({ error: 'Medienverzeichnis nicht gefunden' });
         }
-        await fs.ensureDir(getThumbnailDir());
-        const files = await fs.readdir(currentMediaDir);
         
-        const toSafeBase64 = (str: string) => {
-            return Buffer.from(str, 'utf8').toString('base64')
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
-        };
-
-        const videos = files
-            .filter(file => ['.mp4', '.mkv', '.avi', '.mov'].includes(path.extname(file).toLowerCase()))
-            .map(file => ({
-                name: file,
-                id: toSafeBase64(file),
-                thumbnail: `/thumbnails/${toSafeBase64(file)}.png`
-            }));
-        
-        console.log(`Gefundene Videos: ${videos.length}`);
+        const videos = await getVideosRecursive(currentMediaDir, currentMediaDir);
+        console.log(`Gefundene Videos (rekursiv): ${videos.length}`);
         res.json(videos);
     } catch (error) {
         console.error('Fehler beim Lesen des Verzeichnisses:', error);

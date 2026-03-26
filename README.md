@@ -7,9 +7,11 @@ Celebplayer is an Electron-based application designed to bring order to your vid
 ## Features
 
 - **Plex-Style UI:** A sleek, modern interface for browsing your video collection.
-- **Automatic Thumbnails:** Automatically generates previews for every video using FFmpeg.
+- **Recursive Scanning:** Automatically finds videos in all subfolders (perfect for series or categorized collections).
+- **Poster Support:** Uses existing `poster.jpg`, `folder.jpg`, or `cover.jpg` images from your video folders as high-quality covers.
+- **Automatic Thumbnails:** If no poster is found, it automatically generates a preview using FFmpeg.
 - **Persistent Settings:** Remembers your volume levels, mute status, and last used video directory.
-- **Efficient Streaming:** A local Node.js backend handles video delivery with full support for seeking.
+- **Efficient Streaming:** A local Node.js backend (bundled with esbuild) handles video delivery with full support for seeking.
 - **Search:** Quickly filter your library to find specific videos.
 
 ## Screenshots
