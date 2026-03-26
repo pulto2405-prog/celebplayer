@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn src/index.ts",
-    "build": "tsc"
+    "build": "tsc && npx esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --external:fsevents"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -15,6 +15,7 @@
     "fs-extra": "^11.2.0"
   },
   "devDependencies": {
+    "esbuild": "^0.20.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/fluent-ffmpeg": "^2.1.24",
