@@ -39,7 +39,7 @@ brew install ffmpeg
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/celebplayer.git
+   git clone https://github.com/pulto2405-prog/celebplayer.git
    cd celebplayer
    ```
 
