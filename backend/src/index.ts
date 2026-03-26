@@ -151,21 +151,24 @@ app.get('/api/generate-thumbnail/:id', async (req: Request, res: Response) => {
 
     try {
         await fs.ensureDir(thumbnailDir);
-        // Absolute Dateipfade nutzen und '%'-Zeichen in Dateinamen besser behandeln
-        ffmpeg(path.resolve(filePath))
-            .screenshots({
-                timestamps: [10], // Nutze eine Zahl (Sekunden) statt '10%', um %-Probleme zu vermeiden
-                filename: `${req.params.id}.png`,
-                folder: thumbnailDir,
-                size: '320x180'
-            })
+        // Nutze 'file:' Präfix, um FFmpeg zu zwingen, den Pfad wörtlich zu nehmen (ignoriert %-Platzhalter)
+        const absolutePath = path.resolve(filePath);
+        
+        ffmpeg()
+            .input(`file:${absolutePath}`)
+            .seekInput(10) // Springe zu Sekunde 10
+            .frames(1)    // Nimm genau ein Bild
+            .size('320x180')
+            .output(thumbnailPath)
             .on('end', () => {
+                console.log(`Thumbnail erstellt für: ${filename}`);
                 res.sendFile(thumbnailPath);
             })
             .on('error', (err) => {
                 console.error(`FFmpeg Fehler bei '${filename}':`, err);
                 res.status(500).send('Fehler bei der Thumbnail-Generierung');
-            });
+            })
+            .run();
     } catch (error) {
         res.status(500).send('Interner Fehler');
     }
