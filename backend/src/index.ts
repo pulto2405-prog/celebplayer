@@ -151,24 +151,33 @@ app.get('/api/generate-thumbnail/:id', async (req: Request, res: Response) => {
 
     try {
         await fs.ensureDir(thumbnailDir);
-        // Nutze 'file:' Präfix, um FFmpeg zu zwingen, den Pfad wörtlich zu nehmen (ignoriert %-Platzhalter)
         const absolutePath = path.resolve(filePath);
         
-        ffmpeg()
-            .input(`file:${absolutePath}`)
-            .seekInput(10) // Springe zu Sekunde 10
-            .frames(1)    // Nimm genau ein Bild
-            .size('320x180')
-            .output(thumbnailPath)
-            .on('end', () => {
+        // Direkter spawn-Aufruf ist am sichersten für Sonderzeichen wie '%'
+        const { spawn } = require('child_process');
+        const ffmpegProcess = spawn('ffmpeg', [
+            '-ss', '10',            // Schnelles Seeking vor dem Input
+            '-i', absolutePath,    // Der Pfad wird als exaktes Argument übergeben
+            '-frames:v', '1',      // Nur ein Bild extrahieren
+            '-s', '320x180',       // Größe festlegen
+            '-y',                  // Bestehende Datei überschreiben
+            thumbnailPath          // Zielpfad
+        ]);
+
+        ffmpegProcess.on('close', (code: number) => {
+            if (code === 0) {
                 console.log(`Thumbnail erstellt für: ${filename}`);
                 res.sendFile(thumbnailPath);
-            })
-            .on('error', (err) => {
-                console.error(`FFmpeg Fehler bei '${filename}':`, err);
+            } else {
+                console.error(`FFmpeg Prozess beendet mit Code ${code} bei Datei: ${filename}`);
                 res.status(500).send('Fehler bei der Thumbnail-Generierung');
-            })
-            .run();
+            }
+        });
+
+        ffmpegProcess.on('error', (err: any) => {
+            console.error(`Fehler beim Starten von FFmpeg:`, err);
+            res.status(500).send('Interner Fehler');
+        });
     } catch (error) {
         res.status(500).send('Interner Fehler');
     }
