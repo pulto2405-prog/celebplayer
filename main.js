@@ -8,16 +8,25 @@ let backendProcess;
 const isDev = !app.isPackaged;
 
 function startBackend() {
-  // ... (Pfadberechnung bleibt gleich)
-  let backendPath = path.join(__dirname, 'backend', 'dist', 'bundle.js');
-  let frontendDist = path.join(__dirname, 'frontend', 'dist');
-  
-  if (!isDev) {
+  let backendPath;
+  let frontendDist;
+
+  if (isDev) {
+    backendPath = path.join(__dirname, 'backend', 'dist', 'bundle.js');
+    frontendDist = path.join(__dirname, 'frontend', 'dist');
+  } else {
+    // In production, files are in app.asar.unpacked
     backendPath = path.join(__dirname, '..', 'app.asar.unpacked', 'backend', 'dist', 'bundle.js');
     frontendDist = path.join(__dirname, '..', 'app.asar.unpacked', 'frontend', 'dist');
   }
   
-  const backendDir = path.dirname(path.dirname(backendPath));
+  // Falls der Pfad oben nicht existiert, probieren wir den direkten Pfad als Fallback
+  if (!require('fs').existsSync(backendPath)) {
+    backendPath = path.join(__dirname, 'backend', 'dist', 'bundle.js');
+    frontendDist = path.join(__dirname, 'frontend', 'dist');
+  }
+
+  const backendDir = path.dirname(backendPath);
   
   console.log(`Starte Backend von: ${backendPath}`);
   console.log(`Frontend-Pfad für Backend: ${frontendDist}`);

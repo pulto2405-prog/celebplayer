@@ -43,14 +43,15 @@ brew install ffmpeg
    cd celebplayer
    ```
 
-2. Install dependencies:
+2. Run the automated setup:
    ```bash
-   npm install
+   npm run setup
    ```
+   *This will install all dependencies and build the backend and frontend components.*
 
 ## Usage
 
-### Run in Development Mode
+### Run the Player
 
 ```bash
 npm start
