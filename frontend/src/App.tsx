@@ -109,6 +109,9 @@ function App() {
 
   const handleThumbnailError = (e: React.SyntheticEvent<HTMLImageElement, Event>, id: string) => {
     const target = e.target as HTMLImageElement;
+    // Verhindere Endlosschleife: Wenn bereits ein Versuch unternommen wurde, brich ab.
+    if (target.getAttribute('data-retry')) return;
+    target.setAttribute('data-retry', 'true');
     target.src = `/api/generate-thumbnail/${id}`;
   };
 
