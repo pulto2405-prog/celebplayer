@@ -36,10 +36,6 @@
       ],
       "category": "Video"
     },
-    "asar": true,
-    "asarUnpack": [
-      "backend/dist/**/*",
-      "frontend/dist/**/*"
-    ]
+    "asar": true
   }
 }

@@ -1,6 +1,5 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, utilityProcess } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 
 let mainWindow;
 let backendProcess;
@@ -15,38 +14,25 @@ function startBackend() {
     backendPath = path.join(__dirname, 'backend', 'dist', 'index.js');
     frontendDist = path.join(__dirname, 'frontend', 'dist');
   } else {
-    // In production, files are in app.asar.unpacked
-    backendPath = path.join(__dirname, '..', 'app.asar.unpacked', 'backend', 'dist', 'index.js');
-    frontendDist = path.join(__dirname, '..', 'app.asar.unpacked', 'frontend', 'dist');
-  }
-  
-  // Falls der Pfad oben nicht existiert, probieren wir den direkten Pfad als Fallback
-  if (!require('fs').existsSync(backendPath)) {
+    // In production, we can now read directly from asar!
     backendPath = path.join(__dirname, 'backend', 'dist', 'index.js');
     frontendDist = path.join(__dirname, 'frontend', 'dist');
   }
-
-  const backendDir = path.dirname(backendPath);
   
-  console.log(`Starte Backend von: ${backendPath}`);
-  console.log(`Frontend-Pfad für Backend: ${frontendDist}`);
+  console.log(`Starte Backend via UtilityProcess von: ${backendPath}`);
 
-  backendProcess = spawn('node', [backendPath], {
-    cwd: backendDir,
+  backendProcess = utilityProcess.fork(backendPath, [], {
     env: { 
       ...process.env, 
       PORT: 5000, 
       NODE_ENV: 'production',
       FRONTEND_DIST: frontendDist
-    }
+    },
+    stdio: 'inherit' // Leitet Logs direkt in das Terminal weiter
   });
 
-  backendProcess.stdout.on('data', (data) => {
-    process.stdout.write(`Backend: ${data}`); // Direkte Weiterleitung ins Terminal
-  });
-
-  backendProcess.stderr.on('data', (data) => {
-    process.stderr.write(`Backend Error: ${data}`); // Direkte Weiterleitung ins Terminal
+  backendProcess.on('exit', (code) => {
+    console.log(`Backend beendet mit Code: ${code}`);
   });
 }
 
