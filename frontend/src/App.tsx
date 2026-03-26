@@ -15,7 +15,7 @@ function App() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [folderPath, setFolderPath] = useState(() => {
-    return localStorage.getItem('videoPlayerFolderPath') || '/mnt/Seagate8TB/celeb/nudeceleb';
+    return localStorage.getItem('videoPlayerFolderPath') || '';
   });
   const [volume, setVolume] = useState<number>(() => {
     const saved = localStorage.getItem('videoPlayerVolume');
