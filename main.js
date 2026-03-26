@@ -12,17 +12,17 @@ function startBackend() {
   let frontendDist;
 
   if (isDev) {
-    backendPath = path.join(__dirname, 'backend', 'dist', 'bundle.js');
+    backendPath = path.join(__dirname, 'backend', 'dist', 'index.js');
     frontendDist = path.join(__dirname, 'frontend', 'dist');
   } else {
     // In production, files are in app.asar.unpacked
-    backendPath = path.join(__dirname, '..', 'app.asar.unpacked', 'backend', 'dist', 'bundle.js');
+    backendPath = path.join(__dirname, '..', 'app.asar.unpacked', 'backend', 'dist', 'index.js');
     frontendDist = path.join(__dirname, '..', 'app.asar.unpacked', 'frontend', 'dist');
   }
   
   // Falls der Pfad oben nicht existiert, probieren wir den direkten Pfad als Fallback
   if (!require('fs').existsSync(backendPath)) {
-    backendPath = path.join(__dirname, 'backend', 'dist', 'bundle.js');
+    backendPath = path.join(__dirname, 'backend', 'dist', 'index.js');
     frontendDist = path.join(__dirname, 'frontend', 'dist');
   }
 
