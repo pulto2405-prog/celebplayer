@@ -206,14 +206,11 @@ app.get('/api/generate-thumbnail/:id', async (req: Request, res: Response) => {
         await fs.ensureDir(thumbnailDir);
         const absolutePath = path.resolve(filePath);
         
-        // Direkter spawn-Aufruf ist am sichersten für Sonderzeichen wie '%'
-        // WICHTIG: '%' muss für FFmpeg verdoppelt werden (%%), damit es nicht als Platzhalter interpretiert wird
-        const escapedPath = absolutePath.replace(/%/g, '%%');
-        
         const { spawn } = require('child_process');
         const ffmpegProcess = spawn('ffmpeg', [
+            '-nostdin',
             '-ss', '10',
-            '-i', escapedPath,
+            '-i', absolutePath,
             '-frames:v', '1',
             '-s', '320x180',
             '-y',

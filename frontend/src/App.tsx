@@ -186,7 +186,7 @@ function App() {
             <button className="close-btn" onClick={() => setSelectedVideo(null)}>
               <X size={24} /> Schließen
             </button>
-            <video 
+            <video key={selectedVideo.id} 
               ref={videoRef}
               controls 
               autoPlay
