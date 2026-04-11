@@ -1,6 +1,6 @@
 {
   "name": "celebplayer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A private, Plex-style media player for local video collections with automatic thumbnail generation and improved UI for portrait videos.",
   "author": "Pulto <pulto2405@gmail.com>",
   "license": "MIT",

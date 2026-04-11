@@ -187,7 +187,59 @@ app.get('/api/stream/:id', async (req: Request, res: Response) => {
     }
 });
 
-// 3. Thumbnail Generierung
+// --- THUMBNAIL QUEUE ---
+const thumbnailQueue: { id: string, filePath: string, thumbnailPath: string, filename: string, res: Response }[] = [];
+let isProcessingQueue = false;
+
+async function processNextInQueue() {
+    if (thumbnailQueue.length === 0) {
+        isProcessingQueue = false;
+        return;
+    }
+
+    isProcessingQueue = true;
+    const task = thumbnailQueue.shift();
+    if (!task) return;
+
+    const { id, filePath, thumbnailPath, filename, res } = task;
+
+    try {
+        const absolutePath = path.resolve(filePath);
+        const { spawn } = require('child_process');
+        
+        const ffmpegProcess = spawn('ffmpeg', [
+            '-nostdin',
+            '-ss', '10',
+            '-i', absolutePath,
+            '-frames:v', '1',
+            '-s', '320x180',
+            '-y',
+            thumbnailPath
+        ]);
+
+        ffmpegProcess.on('close', (code: number) => {
+            if (code === 0) {
+                console.log(`Thumbnail erstellt für: ${filename} (Warteschlange: ${thumbnailQueue.length})`);
+                if (!res.headersSent) res.sendFile(thumbnailPath);
+            } else {
+                console.error(`FFmpeg Fehler Code ${code} bei: ${filename}`);
+                if (!res.headersSent) res.status(500).send('Fehler');
+            }
+            processNextInQueue();
+        });
+
+        ffmpegProcess.on('error', (err: any) => {
+            console.error(`FFmpeg Start-Fehler:`, err);
+            if (!res.headersSent) res.status(500).send('Fehler');
+            processNextInQueue();
+        });
+    } catch (error) {
+        if (!res.headersSent) res.status(500).send('Fehler');
+        processNextInQueue();
+    }
+}
+
+// 3. Thumbnail Generierung (mit Warteschlange)
 app.get('/api/generate-thumbnail/:id', async (req: Request, res: Response) => {
     const filename = fromSafeBase64(req.params.id);
     const filePath = path.join(currentMediaDir, filename);
@@ -202,37 +254,11 @@ app.get('/api/generate-thumbnail/:id', async (req: Request, res: Response) => {
         return res.sendFile(thumbnailPath);
     }
 
-    try {
-        await fs.ensureDir(thumbnailDir);
-        const absolutePath = path.resolve(filePath);
-        
-        const { spawn } = require('child_process');
-        const ffmpegProcess = spawn('ffmpeg', [
-            '-nostdin',
-            '-ss', '10',
-            '-i', absolutePath,
-            '-frames:v', '1',
-            '-s', '320x180',
-            '-y',
-            thumbnailPath
-        ]);
-
-        ffmpegProcess.on('close', (code: number) => {
-            if (code === 0) {
-                console.log(`Thumbnail erstellt für: ${filename}`);
-                res.sendFile(thumbnailPath);
-            } else {
-                console.error(`FFmpeg Prozess beendet mit Code ${code} bei Datei: ${filename}`);
-                res.status(500).send('Fehler bei der Thumbnail-Generierung');
-            }
-        });
-
-        ffmpegProcess.on('error', (err: any) => {
-            console.error(`Fehler beim Starten von FFmpeg:`, err);
-            res.status(500).send('Interner Fehler');
-        });
-    } catch (error) {
-        res.status(500).send('Interner Fehler');
+    // Aufgabe in die Warteschlange einreihen
+    thumbnailQueue.push({ id: req.params.id, filePath, thumbnailPath, filename, res });
+    
+    if (!isProcessingQueue) {
+        processNextInQueue();
     }
 });
 
